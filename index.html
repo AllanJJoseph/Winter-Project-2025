@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!-- Favicon: purple->green gradient rounded square with "QR" -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
+  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+    <defs>
+      <linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'>
+        <stop offset='0%' stop-color='%237c3aed'/>
+        <stop offset='100%' stop-color='%2334d399'/>
+      </linearGradient>
+    </defs>
+    <rect width='100' height='100' rx='16' ry='16' fill='url(%23g)'/>
+    <text x='50' y='62' font-size='48' text-anchor='middle' fill='white' font-family='Arial' font-weight='800'>QR</text>
+  </svg>
+  " />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>QR Links — generate QR codes</title>
+  <meta name="description" content="Generate beautiful QR codes from links. Download PNG or SVG.">
+  <style>
+    :root{
+      --bg:#071028; --card:#0c1320; --muted:#9fb0d0;
+      --accent-start:#7c3aed; --accent-end:#06b6d4; --accent-2:#34d399;
+      --glass: rgba(255,255,255,0.03);
+      --radius:12px;
+      --btn-ease: cubic-bezier(.2,.9,.2,1);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;color:#eaf2ff;background:
+      radial-gradient(circle at 10% 10%, rgba(124,58,237,0.06), transparent 10%),
+      linear-gradient(180deg,#041022 0%, #071028 100%);padding:28px}
+    .wrap{max-width:980px;margin:0 auto}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    .brand{display:flex;align-items:center;gap:.8rem}
+    /* Title wrap to vertically center heading + subtitle */
+    .title-wrap { display:flex; flex-direction:column; justify-content:center; }
+    /* Floating idle animation for logo */
+    @keyframes floaty {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+      100% { transform: translateY(0); }
+    }
+    .logo{
+      width:52px;height:52px;border-radius:14px;
+      background: linear-gradient(135deg,var(--accent-start),var(--accent-2));
+      display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;
+      box-shadow: 0 8px 30px rgba(7,10,20,0.6);
+      transform-origin:center;
+      animation: floaty 4.5s ease-in-out infinite;
+    }
+    h1{margin:0;font-size:1.25rem;line-height:1}
+    .muted{color:var(--muted);font-size:.95rem}
+
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border-radius:var(--radius);padding:18px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 10px 40px rgba(2,6,23,0.6)}
+    .layout{display:grid;grid-template-columns:1fr 380px;gap:16px}
+    .field{margin-bottom:12px}
+    label{display:block;font-size:.9rem;color:var(--muted);margin-bottom:6px}
+    input[type="text"], input[type="number"], select{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    input[type="color"]{height:44px;width:44px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);padding:4px;background:transparent}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    /* Primary button styles with gradient background and animations */
+    .btn {
+      position: relative;
+      overflow: hidden;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:.5rem;
+      padding:10px 12px;
+      border-radius:10px;
+      border:none;
+      color:white;
+      font-weight:700;
+      cursor:pointer;
+      background-image: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+      background-size: 200% 200%;
+      transition: transform 320ms var(--btn-ease), box-shadow 320ms var(--btn-ease), background-position 700ms var(--btn-ease);
+      transform-origin:center;
+      box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+      will-change: transform;
+      /* floating idle on primary buttons too */
+      animation: floaty 6s ease-in-out infinite;
+    }
+
+    /* Ghost buttons (secondary) */
+    .btn-ghost {
+      position: relative;
+      overflow: hidden;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.06);
+      background:transparent;
+      color:var(--muted);
+      cursor:pointer;
+      font-weight:700;
+      transition: transform 250ms var(--btn-ease), box-shadow 250ms var(--btn-ease), background-color 250ms var(--btn-ease);
+    }
+
+    /* Pop-up scale & glow ring on hover */
+    .btn:hover, .btn-ghost:hover {
+      transform: scale(1.07);
+      box-shadow: 0 14px 40px rgba(7,20,50,0.45);
+    }
+
+    /* Gradient shift for primary btn */
+    .btn:hover{
+      background-position: 100% 0%;
+    }
+
+    /* Glow ring - pulse using pseudo-element */
+    .btn::after, .btn-ghost::after {
+      content: "";
+      position: absolute;
+      inset: -6px;
+      border-radius: 12px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 300ms ease, transform 500ms ease;
+      box-shadow: 0 0 0 6px rgba(124,58,237,0.08), 0 0 30px rgba(6,182,212,0.06);
+      transform: scale(0.95);
+    }
+    .btn:hover::after, .btn-ghost:hover::after {
+      opacity: 1;
+      transform: scale(1);
+      animation: pulseRing 1600ms ease-in-out infinite;
+    }
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 6px rgba(124,58,237,0.08); }
+      50% { box-shadow: 0 0 40px 12px rgba(52,211,153,0.06); }
+      100% { box-shadow: 0 0 0 6px rgba(124,58,237,0.08); }
+    }
+
+    /* Press down effect */
+    .btn:active, .btn-ghost:active {
+      transform: scale(0.96);
+      transition: transform 120ms;
+    }
+
+    .preview{display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px}
+    .small{font-size:.88rem;color:var(--muted)}
+    .qr-box{background:var(--glass);padding:12px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+    .history{margin-top:12px;display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto;padding-right:6px}
+    .history .item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)}
+    .history .item button{padding:6px 8px;font-size:.85rem}
+    footer{margin-top:12px;color:var(--muted);font-size:.9rem}
+
+    /* Ripple styles - the ripple elements are created by JS */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple-effect 700ms cubic-bezier(.2,.9,.2,1);
+      background: rgba(255,255,255,0.28);
+      pointer-events: none;
+    }
+    @keyframes ripple-effect {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    /* Text typing animation (native JS) */
+    .text-type {
+      display: inline-flex;
+      white-space: pre-wrap;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--muted);
+      /* removed extra top margin to keep vertical centering */
+    }
+    .text-type__content { display: inline-flex; align-items: center; line-height: 1; }
+    .text-type__cursor {
+      margin-left: 0.25rem;
+      display: inline-flex;
+      align-items: center;
+      opacity: 1;
+      animation: blinkCursor 1s steps(2, start) infinite;
+      line-height: 1;
+    }
+    .text-type__cursor--hidden { display: none; }
+    @keyframes blinkCursor {
+      0% { opacity: 1; }
+      49% { opacity: 1; }
+      50% { opacity: 0; }
+      100% { opacity: 0; }
+    }
+
+    @media(max-width:880px){
+      .layout{grid-template-columns:1fr}
+      .preview{order:-1}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">QR</div>
+        <div class="title-wrap">
+          <h1>QR Links</h1>
+          <!-- animated subtitle -->
+          <div id="animatedSubtitle" class="text-type" aria-hidden="false">
+            <span class="text-type__content" id="textTypeContent"></span>
+            <span class="text-type__cursor" id="textTypeCursor">|</span>
+          </div>
+        </div>
+      </div>
+      <div class="small">Made by Cicada</div>
+    </header>
+
+    <div class="layout">
+      <section class="card">
+        <div class="field">
+          <label for="link">Paste link to encode</label>
+          <input id="link" type="text" inputmode="url" placeholder="https://example.com or any text" />
+        </div>
+
+        <div class="field" style="display:flex;gap:8px">
+          <div style="flex:1">
+            <label for="size">Size (px)</label>
+            <input id="size" type="number" min="128" step="64" value="340" />
+          </div>
+          <div style="width:160px">
+            <label for="ec">Error correction</label>
+            <select id="ec">
+              <option value="L">L — Low (7%)</option>
+              <option value="M" selected>M — Medium (15%)</option>
+              <option value="Q">Q — Quartile (25%)</option>
+              <option value="H">H — High (30%)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field" style="display:flex;gap:8px;align-items:center">
+          <div style="flex:1">
+            <label for="fg">Foreground color</label>
+            <input id="fg" type="color" value="#071022" />
+          </div>
+          <div style="flex:1">
+            <label for="bg">Background color</label>
+            <input id="bg" type="color" value="#ffffff" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="margin">Margin (quiet zone)</label>
+          <input id="margin" type="number" min="0" max="10" step="1" value="1" />
+        </div>
+
+        <div class="controls">
+          <button id="generate" class="btn">Generate</button>
+          <button id="downloadPng" class="btn-ghost">Download PNG</button>
+          <button id="downloadSvg" class="btn-ghost">Download SVG</button>
+          <button id="copyText" class="btn-ghost">Copy link</button>
+          <button id="clearHistory" class="btn-ghost">Clear history</button>
+        </div>
+
+        <div style="margin-top:14px" class="small">
+          Tip: keep links short for the cleanest QR codes. Long text will make the QR dense.
+        </div>
+      </section>
+
+      <aside class="card preview" aria-live="polite">
+        <div class="small">Preview</div>
+        <div class="qr-box" id="qrBox" style="min-width:200px;min-height:200px">
+          <div id="qrTarget" aria-hidden="true"></div>
+        </div>
+        <div id="info" class="small">No QR yet — enter a link and press Generate.</div>
+
+        <div class="small" style="margin-top:12px">Recent</div>
+        <div class="history" id="history"></div>
+      </aside>
+
+  <!-- QR library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+  <script>
+    /* ============================
+       Looping TextType — vanilla JS
+       Types "Welcome to QR Links", pauses, deletes, repeats.
+       Tweak speeds in the config below.
+       ============================ */
+    (function LoopingTextType() {
+      const contentEl = document.getElementById('textTypeContent');
+      const cursorEl = document.getElementById('textTypeCursor');
+      if (!contentEl) return;
+
+      // Configuration
+      const phrase = "Welcome to QR Links";
+      const typingSpeed = 75;      // ms per character when typing
+      const deletingSpeed = 45;    // ms per character when deleting
+      const pauseAfterTyping = 1400;  // ms pause when fully typed
+      const pauseAfterDeleting = 400; // ms pause when fully deleted
+      const startDelay = 200;      // ms before the first typing starts
+      const loop = true;           // keep looping
+
+      let index = 0;
+      let isDeleting = false;
+      let timerId = null;
+
+      function tick() {
+        if (!contentEl) return;
+
+        if (!isDeleting) {
+          // typing
+          contentEl.textContent = phrase.slice(0, index + 1);
+          index++;
+          if (index >= phrase.length) {
+            // finished typing
+            if (loop) {
+              timerId = setTimeout(() => {
+                isDeleting = true;
+                timerId = setTimeout(tick, deletingSpeed);
+              }, pauseAfterTyping);
+            } else {
+              // stop (leave cursor blinking)
+            }
+          } else {
+            timerId = setTimeout(tick, typingSpeed);
+          }
+        } else {
+          // deleting
+          contentEl.textContent = phrase.slice(0, index - 1);
+          index--;
+          if (index <= 0) {
+            // finished deleting
+            isDeleting = false;
+            if (loop) {
+              timerId = setTimeout(tick, pauseAfterDeleting);
+            } else {
+              // done
+            }
+          } else {
+            timerId = setTimeout(tick, deletingSpeed);
+          }
+        }
+      }
+
+      // Start after small delay
+      timerId = setTimeout(tick, startDelay);
+
+      // Clean up if page unloads (not strictly necessary in static file but polite)
+      window.addEventListener('beforeunload', () => {
+        if (timerId) clearTimeout(timerId);
+      });
+    })();
+
+    /* ============================
+       QR App (kept from original file)
+       ============================ */
+
+    // Elements
+    const linkInput = document.getElementById('link');
+    const sizeInput = document.getElementById('size');
+    const ecInput = document.getElementById('ec');
+    const fgInput = document.getElementById('fg');
+    const bgInput = document.getElementById('bg');
+    const marginInput = document.getElementById('margin');
+    const generateBtn = document.getElementById('generate');
+    const qrTarget = document.getElementById('qrTarget');
+    const info = document.getElementById('info');
+    const downloadPng = document.getElementById('downloadPng');
+    const downloadSvg = document.getElementById('downloadSvg');
+    const copyText = document.getElementById('copyText');
+    const historyEl = document.getElementById('history');
+    const clearHistoryBtn = document.getElementById('clearHistory');
+
+    let lastSvg = null;
+    const STORAGE_KEY = 'qr_links_history_v1';
+    const MAX_HISTORY = 30;
+
+    // Helpers
+    function setInfo(text, isError=false) {
+      info.textContent = text;
+      info.style.color = isError ? '#ffb4b4' : '';
+    }
+
+    function clearQR() { qrTarget.innerHTML = ''; lastSvg = null; }
+
+    async function renderQR(text) {
+      clearQR();
+      if (!text) { setInfo('Enter a link or text to encode.'); return; }
+      const size = Math.max(128, Number(sizeInput.value) || 340);
+      const ec = ecInput.value || 'M';
+      const margin = Number(marginInput.value) || 1;
+      const options = { errorCorrectionLevel: ec, margin: margin, color: { dark: fgInput.value, light: bgInput.value } };
+
+      // Canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      try {
+        await QRCode.toCanvas(canvas, text, { ...options, width: size });
+        qrTarget.appendChild(canvas);
+      } catch (err) {
+        setInfo('Failed to render QR: '+ (err.message||err), true);
+        return;
+      }
+
+      // SVG (for download)
+      try {
+        const svgStr = await QRCode.toString(text, { type: 'svg', ...options, width: size });
+        lastSvg = svgStr;
+      } catch (err) {
+        lastSvg = null;
+      }
+
+      setInfo('QR ready — scan or download.');
+    }
+
+    // History (localStorage)
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    }
+    function saveHistory(list) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, MAX_HISTORY)));
+      } catch {}
+    }
+    function addToHistory(text) {
+      if (!text) return;
+      const list = loadHistory();
+      // keep unique, most recent first
+      const filtered = [text, ...list.filter(x => x !== text)].slice(0, MAX_HISTORY);
+      saveHistory(filtered);
+      renderHistory();
+    }
+    function clearHistory() {
+      localStorage.removeItem(STORAGE_KEY);
+      renderHistory();
+    }
+    function renderHistory() {
+      const list = loadHistory();
+      historyEl.innerHTML = '';
+      if (!list.length) {
+        historyEl.innerHTML = '<div class="small" style="color:var(--muted)">No recent links yet.</div>';
+        return;
+      }
+      for (const item of list) {
+        const el = document.createElement('div');
+        el.className = 'item';
+        const a = document.createElement('a');
+        a.href = item;
+        a.target = '_blank';
+        a.rel = 'noreferrer noopener';
+        a.textContent = item.length > 48 ? item.slice(0,45)+'…' : item;
+        a.className = 'small';
+        a.style.flex = '1';
+        el.appendChild(a);
+
+        const openBtn = document.createElement('button');
+        openBtn.className = 'btn-ghost';
+        openBtn.textContent = 'Open';
+        openBtn.addEventListener('click', () => window.open(item, '_blank'));
+
+        const useBtn = document.createElement('button');
+        useBtn.className = 'btn-ghost';
+        useBtn.textContent = 'Use';
+        useBtn.addEventListener('click', () => {
+          linkInput.value = item;
+          renderQR(item);
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn-ghost';
+        delBtn.textContent = 'X';
+        delBtn.addEventListener('click', () => {
+          const newList = loadHistory().filter(x => x !== item);
+          saveHistory(newList);
+          renderHistory();
+        });
+
+        el.appendChild(openBtn);
+        el.appendChild(useBtn);
+        el.appendChild(delBtn);
+        historyEl.appendChild(el);
+      }
+    }
+
+    // Events
+    generateBtn.addEventListener('click', () => {
+      const txt = linkInput.value.trim();
+      renderQR(txt);
+      if (txt) addToHistory(txt);
+    });
+
+    // Auto-generate while typing, but debounce to avoid overwork
+    let typingTimer = null;
+    linkInput.addEventListener('input', () => {
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => {
+        const txt = linkInput.value.trim();
+        if (txt) {
+          renderQR(txt);
+        } else clearQR();
+      }, 500);
+    });
+
+    // Enter to generate + add to history
+    linkInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const txt = linkInput.value.trim();
+        renderQR(txt);
+        if (txt) addToHistory(txt);
+      }
+    });
+
+    downloadPng.addEventListener('click', () => {
+      const canvas = qrTarget.querySelector('canvas');
+      if (!canvas) { setInfo('No QR to download.', true); return; }
+      const url = canvas.toDataURL('image/png', 1);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'qr.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+
+    downloadSvg.addEventListener('click', () => {
+      if (!lastSvg) { setInfo('SVG not available. Try regenerating with a larger size.', true); return; }
+      const blob = new Blob([lastSvg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'qr.svg';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    });
+
+    copyText.addEventListener('click', async () => {
+      const txt = linkInput.value.trim();
+      if (!txt) { setInfo('Nothing to copy.', true); return; }
+      try {
+        await navigator.clipboard.writeText(txt);
+        setInfo('Link copied to clipboard.');
+      } catch {
+        setInfo('Unable to copy to clipboard.', true);
+      }
+    });
+
+    clearHistoryBtn.addEventListener('click', () => {
+      if (confirm('Clear recent links?')) clearHistory();
+    });
+
+    // Init
+    (function init(){
+      renderHistory();
+      // sample
+      linkInput.value = 'https://example.com';
+      renderQR(linkInput.value);
+    })();
+
+    /* -----------------------------
+       Ripple effect implementation
+       ----------------------------- */
+    function createRipple(event) {
+      const btn = event.currentTarget;
+      const rect = btn.getBoundingClientRect();
+
+      // create ripple element
+      const ripple = document.createElement('span');
+      ripple.className = 'ripple';
+
+      // compute size: ensure it covers the button
+      const size = Math.max(rect.width, rect.height) * 1.2;
+      ripple.style.width = ripple.style.height = size + 'px';
+
+      // compute position: center the ripple where clicked
+      const x = event.clientX - rect.left - (size / 2);
+      const y = event.clientY - rect.top - (size / 2);
+      ripple.style.left = x + 'px';
+      ripple.style.top = y + 'px';
+
+      // choose ripple color depending on button type
+      const isPrimary = btn.classList.contains('btn');
+      ripple.style.background = isPrimary ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.10)';
+
+      btn.appendChild(ripple);
+
+      // remove after animation
+      ripple.addEventListener('animationend', () => ripple.remove());
+      // safety removal in case animationend doesn't fire
+      setTimeout(() => ripple.remove(), 900);
+    }
+
+    // Attach ripple to every button with class .btn or .btn-ghost
+    function attachRipples() {
+      const buttons = document.querySelectorAll('.btn, .btn-ghost');
+      buttons.forEach(b => {
+        // avoid adding multiple listeners
+        b.removeEventListener('click', createRipple);
+        b.addEventListener('click', createRipple);
+      });
+    }
+    // reattach anytime (history buttons are dynamic)
+    const observer = new MutationObserver(attachRipples);
+    observer.observe(document.body, { childList: true, subtree: true });
+    attachRipples();
+
+  </script>
+</body>
+</html>
+
+
